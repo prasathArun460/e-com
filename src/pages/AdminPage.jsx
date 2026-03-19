@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Upload, Users, ShoppingBag, PlusCircle, CheckCircle2 } from 'lucide-react';
 import '../App.css';
 
@@ -10,13 +10,15 @@ const AdminPage = () => {
   const [activeTab, setActiveTab] = useState('products'); // 'products', 'users'
   const [productAdded, setProductAdded] = useState(false);
   
-  // Dummy User Data
-  const dummyUsers = [
-    { id: 101, name: 'Rajesh Kumar', email: 'rajesh.k@gmail.com', phone: '+91 9876543210', orders: 4, joinDate: '2023-11-12' },
-    { id: 102, name: 'Anand Construction', email: 'purchase@anandbuild.in', phone: '+91 8765432109', orders: 12, joinDate: '2023-08-05' },
-    { id: 103, name: 'Priya Sharma', email: 'priya.sharma99@yahoo.com', phone: '+91 7654321098', orders: 1, joinDate: '2024-01-20' },
-    { id: 104, name: 'TechPark Maint.', email: 'maintenance@techpk.com', phone: '+91 9988776655', orders: 25, joinDate: '2022-04-18' },
-  ];
+  // Data State
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => setUsers(data))
+      .catch(console.error);
+  }, []);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -27,13 +29,26 @@ const AdminPage = () => {
     }
   };
 
+  const [fileName, setFileName] = useState('');
+  
   const handleAddProduct = (e) => {
     e.preventDefault();
-    setProductAdded(true);
-    setTimeout(() => {
-      setProductAdded(false);
-      e.target.reset();
-    }, 3000);
+    const formData = new FormData(e.target);
+
+    fetch('/api/products', {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      setProductAdded(true);
+      setFileName('');
+      setTimeout(() => {
+        setProductAdded(false);
+        e.target.reset();
+      }, 3000);
+    })
+    .catch(console.error);
   };
 
   if (!isAuthenticated) {
@@ -132,36 +147,37 @@ const AdminPage = () => {
             <form onSubmit={handleAddProduct} className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
               
               {/* Image Upload Area */}
-              <div style={{ gridColumn: '1 / -1', background: '#f8fafc', border: '2px dashed var(--color-border)', borderRadius: '12px', padding: '3rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}>
+              <div 
+                style={{ gridColumn: '1 / -1', background: '#f8fafc', border: '2px dashed var(--color-border)', borderRadius: '12px', padding: '3rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', cursor: 'pointer', position: 'relative' }}>
                 <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '50%', color: 'var(--color-electric)' }}>
                   <Upload size={32} />
                 </div>
                 <div>
                   <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Upload Product Image</h4>
-                  <p style={{ color: 'var(--color-text-light)', fontSize: '0.85rem' }}>Drag and drop or click to browse. Max size 5MB.</p>
+                  <p style={{ color: 'var(--color-electric)', fontSize: '0.9rem', fontWeight: 600 }}>{fileName || 'No file selected'}</p>
                 </div>
-                <input type="file" accept="image/*" style={{ opacity: 0, position: 'absolute', width: '1px', height: '1px' }} />
-                <button type="button" className="btn btn-secondary" style={{ marginTop: '1rem' }}>Browse Files</button>
+                <input required type="file" name="image" accept="image/*" onChange={(e) => setFileName(e.target.files[0]?.name)} style={{ opacity: 0, position: 'absolute', width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' }} />
+                <div className="btn btn-secondary" style={{ pointerEvents: 'none', marginTop: '1rem' }}>Browse Files</div>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text-light)' }}>Product Title</label>
-                <input required type="text" placeholder="e.g. 10mm Copper Wire" style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)' }} />
+                <input required name="title" type="text" placeholder="e.g. 10mm Copper Wire" style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)' }} />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text-light)' }}>Brand Name</label>
-                <input required type="text" placeholder="e.g. Polycab, Finolex" style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)' }} />
+                <input required name="brand" type="text" placeholder="e.g. Polycab, Finolex" style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)' }} />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text-light)' }}>Price (₹)</label>
-                <input required type="number" placeholder="0.00" style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)' }} />
+                <input required name="price" type="number" step="0.01" placeholder="0.00" style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)' }} />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text-light)' }}>Category Section</label>
-                <select style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'white' }}>
+                <select name="category" required style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'white' }}>
                   <option>Electric Pipes</option>
                   <option>Water Pipes</option>
                   <option>Switches</option>
@@ -171,7 +187,7 @@ const AdminPage = () => {
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text-light)' }}>Description & Details</label>
-                <textarea rows="4" placeholder="Enter full specifications..." style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)', resize: 'vertical' }}></textarea>
+                <textarea name="description" rows="4" placeholder="Enter full specifications..." style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)', resize: 'vertical' }}></textarea>
               </div>
 
               <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
@@ -199,7 +215,9 @@ const AdminPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {dummyUsers.map(user => (
+                  {users.length === 0 ? (
+                    <tr><td colSpan="5" style={{ padding: '2rem', textAlign: 'center' }}>Connecting to SQLite... fetching customer node.</td></tr>
+                  ) : users.map(user => (
                     <tr key={user.id} style={{ borderBottom: '1px solid var(--color-border)', transition: 'background 0.2s', ':hover': { background: '#f8fafc' } }}>
                       <td style={{ padding: '1rem', fontWeight: 500 }}>#{user.id}</td>
                       <td style={{ padding: '1rem', fontWeight: 600 }}>{user.name}</td>

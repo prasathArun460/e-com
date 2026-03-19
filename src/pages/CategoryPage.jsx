@@ -1,36 +1,38 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, Filter, ChevronRight } from 'lucide-react';
 import '../App.css';
-
-const categoryProducts = [
-  { id: 1, title: 'Rigid PVC Wiring Conduit 25mm', brand: 'Polycab', price: '₹145.00', section: 'Electric Pipes', img: '/assets/sde_product_conduit_1773907009268.png' },
-  { id: 2, title: '90-Degree Wiring Bend', brand: 'SDE Premium', price: '₹18.00', section: 'Electric Pipes', img: '/assets/sde_product_conduit_1773907009268.png' },
-  { id: 3, title: 'Metal Wiring Clamp 20mm', brand: 'Anchor', price: '₹12.00', section: 'Electric Pipes', img: '/assets/sde_product_junction_1773907111064.png' },
-  { id: 4, title: 'Flexible Service Pipe 1.5"', brand: 'Finolex', price: '₹450.00', section: 'Electric Pipes', img: '/assets/sde_product_wire_1773907065006.png' },
-  { id: 5, title: 'Standard PVC Water Pipe 1"', brand: 'Ashirvad', price: '₹320.00', section: 'Water Pipes', img: '/assets/sde_product_waterpipe_1773907033403.png' },
-  { id: 6, title: 'Water Pipe Clamp 1"', brand: 'SDE Standard', price: '₹8.00', section: 'Water Pipes', img: '/assets/sde_product_waterpipe_1773907033403.png' },
-  { id: 7, title: 'PVC 90-Degree Elbow', brand: 'Supreme', price: '₹28.00', section: 'Water Pipes', img: '/assets/sde_product_waterpipe_1773907033403.png' },
-  { id: 8, title: 'PVC Equal Coupling', brand: 'Supreme', price: '₹15.00', section: 'Water Pipes', img: '/assets/sde_product_waterpipe_1773907033403.png' },
-  { id: 9, title: 'PVC T-Junction Fitting', brand: 'Ashirvad', price: '₹42.00', section: 'Water Pipes', img: '/assets/sde_product_waterpipe_1773907033403.png' },
-  { id: 10, title: 'PVC Reducer Coupling', brand: 'Supreme', price: '₹35.00', section: 'Water Pipes', img: '/assets/sde_product_waterpipe_1773907033403.png' },
-  { id: 11, title: 'Heavy Duty PVC Wire Box', brand: 'Anchor', price: '₹85.00', section: 'Electric Pipes', img: '/assets/sde_product_flexbox_1773907084517.png' },
-  { id: 12, title: '40mm End Cap', brand: 'Ashirvad', price: '₹22.00', section: 'Water Pipes', img: '/assets/sde_product_waterpipe_1773907033403.png' },
-  { id: 13, title: 'Conduit Spacer Saddle', brand: 'SDE Premium', price: '₹10.00', section: 'Electric Pipes', img: '/assets/sde_product_junction_1773907111064.png' },
-  { id: 14, title: 'Threaded UPVC Tee', brand: 'Supreme', price: '₹65.00', section: 'Water Pipes', img: '/assets/sde_product_waterpipe_1773907033403.png' },
-  { id: 15, title: 'Corrugated Flexible Conduit', brand: 'Finolex', price: '₹280.00', section: 'Electric Pipes', img: '/assets/sde_product_wire_1773907065006.png' },
-  { id: 16, title: 'Ball Valve 1.5"', brand: 'Ashirvad', price: '₹140.00', section: 'Water Pipes', img: '/assets/sde_product_waterpipe_1773907033403.png' }
-];
 
 const CategoryPage = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const searchQuery = searchParams.get('q') || '';
+  
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredProducts = categoryProducts.filter(product => 
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        setProducts(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to fetch from SQLite', err);
+        setLoading(false);
+      });
+  }, []);
+
+  const filteredProducts = products.filter(product => 
     product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.section.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.brand.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+     return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Connecting to SQLite Database...</div>;
+  }
 
   return (
     <div className="container animate-fade-in responsive-flex responsive-padding" style={{ padding: '3rem 2rem', display: 'flex', gap: '3rem' }}>
@@ -86,15 +88,15 @@ const CategoryPage = () => {
               <Link to={`/product/${product.id}`} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <div className="product-image-container">
                   <span style={{ position: 'absolute', top: '1rem', left: '1rem', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
-                    {product.section}
+                    {product.category}
                   </span>
-                  <img src={product.img} alt={product.title} className="product-image" />
+                  <img src={product.image_url || '/assets/sde_product_switch_1773906989380.png'} alt={product.title} className="product-image" />
                 </div>
                 <div className="product-details">
                   <div className="product-brand">{product.brand}</div>
                   <h3 className="product-title" style={{ fontSize: '0.95rem' }}>{product.title}</h3>
                   <div className="product-footer">
-                    <span className="product-price">{product.price}</span>
+                    <span className="product-price">₹{product.price.toFixed(2)}</span>
                     <button className="add-btn" onClick={(e) => { e.preventDefault(); }}>
                       <ShoppingCart size={18} />
                     </button>
